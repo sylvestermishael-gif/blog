@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp, Globe, MapPin, Loader2, ChevronRight, Activity, Zap, Compass } from "lucide-react";
-
 import { GoogleGenAI } from "@google/genai";
 import { extractAndParseJSON } from "../lib/aiUtils";
 
@@ -32,7 +31,7 @@ export default function TrendingNews() {
     setError(null);
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXUS_AI_KEY });
       
       const prompt = `
         FAST DISPATCH MODE:
@@ -62,7 +61,7 @@ export default function TrendingNews() {
       });
 
       if (!response.text) {
-        throw new Error("No signal received from global radar.");
+        throw new Error("Frequency silent. No signals received.");
       }
 
       const data = extractAndParseJSON<{ local: any[]; global: any[]; regions: any }>(response.text);

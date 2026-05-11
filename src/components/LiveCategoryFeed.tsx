@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Zap, ExternalLink, Loader2, Sparkles, Trophy, Cpu, Film, Newspaper } from "lucide-react";
-import { GoogleGenAI } from "@google/genai";
 import { Category } from "../types";
 import { extractAndParseJSON } from "../lib/aiUtils";
 
@@ -47,7 +46,7 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
       setError(null);
 
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.NEXUS_AI_KEY });
         const currentDate = new Date().toLocaleDateString();
         
         const prompt = category === "Sports" 
@@ -71,7 +70,7 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
         });
 
         if (!response.text) {
-          throw new Error("Frequency silent. No data extracted.");
+          throw new Error("Signal interference. Pulse lost.");
         }
 
         const data = extractAndParseJSON<{ posts: any[]; scores?: any[] }>(response.text);
