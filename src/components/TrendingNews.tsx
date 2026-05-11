@@ -29,19 +29,24 @@ export default function TrendingNews() {
   const fetchTrending = async (city?: string, country?: string, retryCount = 0) => {
     setLoading(true);
     setError(null);
+    
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      setError("AI Signal missing. For a published app, you MUST add your GEMINI_API_KEY to the Secrets tab in Settings.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       
       const prompt = `
-        FAST DATA EXTRACTION MODE:
-        Search for 5-8 major, breaking news stories from the last 24 hours.
-        Target Location: ${city || "Global Markets"}, ${country || ""}
-        
-        REQUIRED: Tech, Entertainment, Sports, World Events.
-        MANDATORY: Deep-link URLs to major news sites (CNN, Reuters, BBC, etc).
-        
-        FORMAT: Return ONLY a raw JSON object. NO code blocks.
-        
+        FAST DISPATCH MODE:
+        Find 5-8 major breaking news stories from the last 24 hours.
+        Context: ${city || "Global"}, ${country || ""}
+        Categories: Tech, Entertainment, Sports, World.
+        Requirement: REAL deep-link URLs to major news sites (Reuters, BBC, CNN, etc).
+        Output: ONLY a raw JSON object.
         {
           "local": [{"id": "l1", "title": "...", "source": "...", "time": "...", "url": "..."}],
           "global": [{"id": "g1", "title": "...", "source": "...", "time": "...", "url": "..."}],
@@ -187,7 +192,9 @@ export default function TrendingNews() {
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
                 <button 
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     console.log("Triggering manual radar sync...");
                     initRadar();
                   }} 

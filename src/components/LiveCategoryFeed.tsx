@@ -45,8 +45,16 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
     const fetchLiveNews = async (retryCount = 0) => {
       setLoading(true);
       setError(null);
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setError("Bandwidth restricted. AI frequencies unavailable. Please add GEMINI_API_KEY to your Secrets.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey });
         const currentDate = new Date().toLocaleDateString();
         
         const prompt = category === "Sports" 
