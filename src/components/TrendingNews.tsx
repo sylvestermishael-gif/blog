@@ -33,15 +33,18 @@ export default function TrendingNews() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompt = `
-        You are a data extraction API.
-        Search for the most recent, breaking news headlines (last 24 hours) for ${city || "the world"}, ${country || ""}. 
-        Focus on categories like Tech, Entertainment, Sports, and major World Events.
-        MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
-        OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
-        JSON SCHEMA:
+        FAST DATA EXTRACTION MODE:
+        Search for 5-8 major, breaking news stories from the last 24 hours.
+        Target Location: ${city || "Global Markets"}, ${country || ""}
+        
+        REQUIRED: Tech, Entertainment, Sports, World Events.
+        MANDATORY: Deep-link URLs to major news sites (CNN, Reuters, BBC, etc).
+        
+        FORMAT: Return ONLY a raw JSON object. NO code blocks.
+        
         {
-          "local": [{"id": "1", "title": "...", "source": "...", "time": "...", "url": "..."}],
-          "global": [{"id": "6", "title": "...", "source": "...", "time": "...", "url": "..."}],
+          "local": [{"id": "l1", "title": "...", "source": "...", "time": "...", "url": "..."}],
+          "global": [{"id": "g1", "title": "...", "source": "...", "time": "...", "url": "..."}],
           "regions": {
             "Africa": [{"title": "...", "source": "..."}],
             "Europe": [{"title": "...", "source": "..."}],
@@ -52,59 +55,89 @@ export default function TrendingNews() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: prompt,
         config: {
-          tools: [
-            { googleSearch: {} }
-          ],
+          tools: [{ googleSearch: {} }],
           toolConfig: { includeServerSideToolInvocations: true }
         }
       });
 
       const data = extractAndParseJSON<{ local: any[]; global: any[]; regions: any }>(response.text);
-      setLocalTrending(data.local || []);
-      setGlobalTrending(data.global || []);
+      
+      // Ensure IDs are unique if AI fails to provide them uniquely
+      const mapItem = (item: any, type: string, idx: number) => ({
+        ...item,
+        id: item.id || `${type}-${idx}-${Date.now()}`
+      });
+
+      setLocalTrending((data.local || []).map((item, i) => mapItem(item, 'local', i)));
+      setGlobalTrending((data.global || []).map((item, i) => mapItem(item, 'global', i)));
       setWorldRadar(data.regions || {});
     } catch (err) {
       console.error("Failed to fetch trending news:", err);
       if (retryCount < 1) {
-        console.log("Retrying fetch...");
-        return fetchTrending(city, country, retryCount + 1);
+        console.log("Retrying fetch with simplified parameters...");
+        return fetchTrending(undefined, undefined, retryCount + 1);
       }
-      setError("Radar signal lost. Frequencies are currently unstable.");
+      setError("Radar signal lost. Global frequencies are unstable.");
     } finally {
       setLoading(false);
     }
   };
 
   const initRadar = () => {
-    if (!navigator.geolocation) {
+    setLoading(true);
+    setError(null);
+
+    let locationFound = false;
+
+    const useFallback = () => {
+      if (locationFound) return;
+      console.warn("Falling back to global radar...");
       fetchTrending();
+    };
+
+    if (!navigator.geolocation) {
+      useFallback();
       return;
     }
 
+    // Faster timeout: if location isn't found in 3s, start global fetch but keep listening
+    const geoTimeout = setTimeout(() => {
+      useFallback();
+    }, 3000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        clearTimeout(geoTimeout);
+        locationFound = true;
         const { latitude, longitude } = position.coords;
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-          if (!res.ok) throw new Error("Reverse geocode service down");
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+            headers: { 'Accept-Language': 'en' },
+            signal: AbortSignal.timeout(3000) // Don't hang on geocoding
+          }).catch(() => null);
+          
+          if (!res || !res.ok) {
+            fetchTrending();
+            return;
+          }
+          
           const data = await res.json();
-          const city = data.address.city || data.address.town || data.address.village || "your area";
-          const country = data.address.country || "your country";
+          const city = data?.address?.city || data?.address?.town || data?.address?.village || "major cities";
+          const country = data?.address?.country || "nearby regions";
           setLocation({ city, country });
           fetchTrending(city, country);
         } catch (err) {
-          console.error("Reverse geocode failed:", err);
           fetchTrending(); 
         }
       },
       (err) => {
-        console.error("Geolocation error:", err);
+        clearTimeout(geoTimeout);
         fetchTrending();
       },
-      { timeout: 10000 }
+      { timeout: 4000, enableHighAccuracy: false }
     );
   };
 
@@ -154,8 +187,11 @@ export default function TrendingNews() {
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
                 <button 
-                  onClick={() => initRadar()} 
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white hover:underline px-6 py-2 border border-slate-200 dark:border-slate-800 rounded-full"
+                  onClick={() => {
+                    console.log("Triggering manual radar sync...");
+                    initRadar();
+                  }} 
+                  className="relative z-50 text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 px-8 py-4 border border-slate-200 dark:border-slate-800 rounded-full shadow-lg active:scale-95 transition-all cursor-pointer"
                 >
                   Attempt Sync
                 </button>

@@ -6,11 +6,13 @@ export function extractAndParseJSON<T>(text: string): T {
     throw new Error("Empty response from model");
   }
 
-  // Helper to clean common JSON issues like trailing commas or single quotes if they creep in
+  // Helper to clean common JSON issues like trailing commas or non-quoted keys
   const basicClean = (s: string) => {
     return s.trim()
       .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
-      .replace(/([{,]\s*)([a-zA-Z0-9_]+):/g, '$1"$2":'); // Ensure keys are quoted if they aren't
+      .replace(/(?:\r\n|\r|\n)/g, ' ') // Replace newlines with spaces
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '') // Remove comments
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+):/g, '$1"$2":'); // Ensure keys are quoted
   };
 
   try {
@@ -36,8 +38,8 @@ export function extractAndParseJSON<T>(text: string): T {
       }
     }
 
-    // 3. Last ditch: try to extract from markdown blocks specifically
-    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/);
+    // 3. Fallback: try to extract from markdown blocks specifically
+    const jsonMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/i);
     if (jsonMatch && jsonMatch[1]) {
       const rawBlock = jsonMatch[1].trim();
       try {
@@ -46,8 +48,20 @@ export function extractAndParseJSON<T>(text: string): T {
         try {
           return JSON.parse(basicClean(rawBlock)) as T;
         } catch (cleanE) {
-          console.warn("Failed last-ditch extraction attempt", cleanE);
+          console.warn("Failed markdown extraction attempt", cleanE);
         }
+      }
+    }
+
+    // 4. Extreme measure: strip all comments // and /* */ if they exist
+    const withoutComments = text.replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const s2 = withoutComments.indexOf('{');
+    const e2 = withoutComments.lastIndexOf('}');
+    if (s2 !== -1 && e2 !== -1 && e2 > s2) {
+      try {
+        return JSON.parse(basicClean(withoutComments.substring(s2, e2 + 1))) as T;
+      } catch (lastE) {
+        console.error("Extreme extraction failed", lastE);
       }
     }
 

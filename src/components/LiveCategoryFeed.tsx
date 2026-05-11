@@ -50,24 +50,19 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
         const currentDate = new Date().toLocaleDateString();
         
         const prompt = category === "Sports" 
-          ? `You are a data extraction API. 
-             Search for today's football (soccer) match scores and fixtures (date: ${currentDate}). 
-             Include major leagues like Premier League, La Liga, Champions League.
-             Also find 4-5 major sports news stories.
-             MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
-             OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
-             {
+          ? `FAST MODE: Find today's football match scores (date: ${currentDate}). 
+             Include major leagues. Also find 4-5 major sports news stories.
+             MANDATORY: Return valid URLs. No "#".
+             JSON Format: {
                "scores": [{"homeTeam": "...", "awayTeam": "...", "score": "...", "status": "LIVE/FT/Upcoming", "source": "..."}],
                "posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]
              }`
-          : `You are a data extraction API.
-             Search for the 8 most recent significant stories for "${category}" (last 24h).
-             MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
-             OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
-             {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
+          : `FAST MODE: Search 8 recent stories for "${category}". 
+             MANDATORY: Return valid URLs. No "#".
+             JSON Format: {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-2.0-flash",
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }],
@@ -148,7 +143,7 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
         <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
         <button 
           onClick={() => window.location.reload()} 
-          className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white hover:underline"
+          className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white bg-white dark:bg-slate-950 hover:bg-slate-50 px-8 py-3 border border-slate-200 dark:border-slate-800 rounded-full shadow-sm active:scale-95 transition-all cursor-pointer"
         >
           Re-calibrate Radar
         </button>
