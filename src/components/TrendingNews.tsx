@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp, Globe, MapPin, Loader2, ChevronRight, Activity, Zap, Compass } from "lucide-react";
+
 import { GoogleGenAI } from "@google/genai";
 import { extractAndParseJSON } from "../lib/aiUtils";
 
@@ -30,15 +31,8 @@ export default function TrendingNews() {
     setLoading(true);
     setError(null);
     
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      setError("AI Signal initializing... (The platform provides this automatically)");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompt = `
         FAST DISPATCH MODE:
@@ -60,12 +54,16 @@ export default function TrendingNews() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }]
         }
       });
+
+      if (!response.text) {
+        throw new Error("No signal received from global radar.");
+      }
 
       const data = extractAndParseJSON<{ local: any[]; global: any[]; regions: any }>(response.text);
       
@@ -75,16 +73,16 @@ export default function TrendingNews() {
         id: item.id || `${type}-${idx}-${Date.now()}`
       });
 
-      setLocalTrending((data.local || []).map((item, i) => mapItem(item, 'local', i)));
-      setGlobalTrending((data.global || []).map((item, i) => mapItem(item, 'global', i)));
+      setLocalTrending((data.local || []).map((item: any, i: number) => mapItem(item, 'local', i)));
+      setGlobalTrending((data.global || []).map((item: any, i: number) => mapItem(item, 'global', i)));
       setWorldRadar(data.regions || {});
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch trending news:", err);
       if (retryCount < 1) {
         console.log("Retrying fetch with simplified parameters...");
         return fetchTrending(undefined, undefined, retryCount + 1);
       }
-      setError("Radar signal lost. Global frequencies are unstable.");
+      setError(err.message || "Radar signal lost. Global frequencies are unstable.");
     } finally {
       setLoading(false);
     }

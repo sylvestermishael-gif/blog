@@ -1,6 +1,6 @@
 {
   "name": "Nexus",
-  "description": "A responsive design-focused blog inspired by Dribbble Stories, featuring a minimalist aesthetic and high-quality imagery.",
+  "description": "Nexus Global Radar: A real-time news aggregation platform using AI to track breaking global and local signals with a minimalist, high-tech aesthetic.",
   "requestFramePermissions": [
     "geolocation"
   ],

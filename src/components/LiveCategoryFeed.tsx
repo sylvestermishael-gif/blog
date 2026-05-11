@@ -46,15 +46,8 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
       setLoading(true);
       setError(null);
 
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        setError("AI Signal initializing...");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const currentDate = new Date().toLocaleDateString();
         
         const prompt = category === "Sports" 
@@ -70,15 +63,18 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
              JSON Format: {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-flash-latest",
+          model: "gemini-3-flash-preview",
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }]
           }
         });
 
+        if (!response.text) {
+          throw new Error("Frequency silent. No data extracted.");
+        }
+
         const data = extractAndParseJSON<{ posts: any[]; scores?: any[] }>(response.text);
-        
         const validPosts = (data.posts || []).filter((p: any) => p.title && p.summary);
         
         setPosts(validPosts);
@@ -87,13 +83,13 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
         if (validPosts.length === 0 && (!data.scores || data.scores.length === 0)) {
            setError("Signals are faint at this frequency. Checking other bands.");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch live category news:", err);
         if (retryCount < 1) {
           console.log("Retrying fetch...");
           return fetchLiveNews(retryCount + 1);
         }
-        setError("World radar offline. Signal lost in space.");
+        setError(err.message || "World radar offline. Signal lost in space.");
       } finally {
         setLoading(false);
       }
