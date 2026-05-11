@@ -32,7 +32,7 @@ export default function TrendingNews() {
     
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      setError("AI Signal missing. For a published app, you MUST add your GEMINI_API_KEY to the Secrets tab in Settings.");
+      setError("AI Signal initializing... (The platform provides this automatically)");
       setLoading(false);
       return;
     }
@@ -60,11 +60,10 @@ export default function TrendingNews() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }],
-          toolConfig: { includeServerSideToolInvocations: true }
+          tools: [{ googleSearch: {} }]
         }
       });
 

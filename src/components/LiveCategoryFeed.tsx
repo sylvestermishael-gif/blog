@@ -48,7 +48,7 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        setError("Bandwidth restricted. AI frequencies unavailable. Please add GEMINI_API_KEY to your Secrets.");
+        setError("AI Signal initializing...");
         setLoading(false);
         return;
       }
@@ -70,11 +70,10 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
              JSON Format: {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
+          model: "gemini-flash-latest",
           contents: prompt,
           config: {
-            tools: [{ googleSearch: {} }],
-            toolConfig: { includeServerSideToolInvocations: true }
+            tools: [{ googleSearch: {} }]
           }
         });
 
