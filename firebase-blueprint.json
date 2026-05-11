@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Follow": {
+      "title": "Follow",
+      "description": "A relationship indicating one user follows another",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followingId", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Information about a registered user",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The user's profile picture URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the user account was created"
+        },
+        "interests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of categories the user is interested in"
+        }
+      },
+      "required": ["displayName", "email", "createdAt"]
+    },
+    "ConnectionTest": {
+      "title": "Connection Test",
+      "description": "A simple entity for connectivity tests.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/test/{connId}": {
+      "schema": "ConnectionTest",
+      "description": "Used to test Firestore connection state."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Relationship between followers and followed users"
+    }
+  }
+}

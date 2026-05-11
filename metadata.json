@@ -1,0 +1,6 @@
+{
+  "name": "Nexus",
+  "description": "A responsive design-focused blog inspired by Dribbble Stories, featuring a minimalist aesthetic and high-quality imagery.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}
