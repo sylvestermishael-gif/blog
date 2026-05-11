@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp, Globe, MapPin, Loader2, ChevronRight, Activity, Zap, Compass } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
+import { extractAndParseJSON } from "../lib/aiUtils";
 
 interface TrendingItem {
   id: string;
@@ -30,9 +31,12 @@ export default function TrendingNews() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompt = `
+        You are a data extraction API.
         Search for the most recent, breaking news headlines (last 24 hours) for ${city || "the user's current city"}, ${country || "their country"}, and the world in general. 
         Focus on categories like Tech, Entertainment, Sports, and major World Events.
-        Return the data in the following JSON format:
+        MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
+        OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
+        JSON SCHEMA:
         {
           "local": [{"id": "1", "title": "...", "source": "...", "time": "...", "url": "..."}],
           "global": [{"id": "6", "title": "...", "source": "...", "time": "...", "url": "..."}],
@@ -43,14 +47,12 @@ export default function TrendingNews() {
             "Americas": [{"title": "...", "source": "..."}]
           }
         }
-        The titles should be punchy. The time should be relative. URLs should be placeholder "#" or actual news URLs if found.
       `;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          responseMimeType: "application/json",
           tools: [
             { googleSearch: {} }
           ],
@@ -58,13 +60,13 @@ export default function TrendingNews() {
         }
       });
 
-      const data = JSON.parse(response.text);
+      const data = extractAndParseJSON<{ local: any[]; global: any[]; regions: any }>(response.text);
       setLocalTrending(data.local || []);
       setGlobalTrending(data.global || []);
       setWorldRadar(data.regions || {});
     } catch (err) {
       console.error("Failed to fetch trending news:", err);
-      setError("Unable to load latest trends.");
+      setError("Unable to load latest trends from world radar.");
     } finally {
       setLoading(false);
     }
@@ -135,6 +137,10 @@ export default function TrendingNews() {
                   <div key={i} className="h-28 bg-slate-50 dark:bg-slate-900/50 rounded-3xl animate-pulse border border-slate-100 dark:border-slate-800" />
                 ))}
               </div>
+            ) : error && localTrending.length === 0 ? (
+              <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 text-center">
+                <p className="text-slate-500 text-sm font-medium">{error}</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <AnimatePresence>
@@ -178,7 +184,11 @@ export default function TrendingNews() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {globalTrending.map((item, idx) => (
+              {loading ? (
+                 <div className="md:col-span-2 h-20 bg-slate-50 dark:bg-slate-900/50 rounded-3xl animate-pulse" />
+              ) : error && globalTrending.length === 0 ? (
+                <div className="md:col-span-2 text-slate-500 text-xs font-medium italic">Global signals blocked by local interference.</div>
+              ) : globalTrending.map((item, idx) => (
                 <motion.a
                   key={item.id}
                   href={item.url === "#" ? undefined : item.url}

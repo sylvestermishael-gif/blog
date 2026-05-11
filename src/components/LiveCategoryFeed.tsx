@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Zap, ExternalLink, Loader2, Sparkles, Trophy, Cpu, Film, Newspaper } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { Category } from "../types";
+import { extractAndParseJSON } from "../lib/aiUtils";
 
 interface LivePost {
   id: string;
@@ -49,33 +50,45 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
         const currentDate = new Date().toLocaleDateString();
         
         const prompt = category === "Sports" 
-          ? `Search for today's football (soccer) match scores and fixtures (date: ${currentDate}). 
+          ? `You are a data extraction API. 
+             Search for today's football (soccer) match scores and fixtures (date: ${currentDate}). 
              Include major leagues like Premier League, La Liga, Champions League.
              Also find 4-5 major sports news stories.
-             Return JSON: 
+             MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
+             OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
              {
                "scores": [{"homeTeam": "...", "awayTeam": "...", "score": "...", "status": "LIVE/FT/Upcoming", "source": "..."}],
                "posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]
              }`
-          : `Search for the 8 most recent significant stories for "${category}" (last 24h).
-             Return JSON: {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
+          : `You are a data extraction API.
+             Search for the 8 most recent significant stories for "${category}" (last 24h).
+             MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
+             OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
+             {"posts": [{"title": "...", "summary": "...", "source": "...", "url": "...", "time": "..."}]}`;
 
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
           contents: prompt,
           config: {
-            responseMimeType: "application/json",
             tools: [{ googleSearch: {} }],
             toolConfig: { includeServerSideToolInvocations: true }
           }
         });
 
-        const data = JSON.parse(response.text);
-        setPosts(data.posts || []);
+        const data = extractAndParseJSON<{ posts: any[]; scores?: any[] }>(response.text);
+        
+        // Filter out items with placeholder URLs if possible, or just accept them but prioritize real ones
+        const validPosts = (data.posts || []).filter((p: any) => p.title && p.summary);
+        
+        setPosts(validPosts);
         setScores(data.scores || []);
+        
+        if (validPosts.length === 0 && (!data.scores || data.scores.length === 0)) {
+           setError("Signals are faint at this frequency. Try another channel.");
+        }
       } catch (err) {
         console.error("Failed to fetch live category news:", err);
-        setError("Syncing world signals... checking local frequencies.");
+        setError("World radar offline. Falling back to local community stories.");
       } finally {
         setLoading(false);
       }
@@ -119,6 +132,23 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
           <div className="absolute inset-0 bg-black/5 blur-xl dark:bg-black/50 dark:blur-xl rounded-full" />
         </div>
         <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 animate-pulse">Syncing Global Waves</p>
+      </div>
+    );
+  }
+
+  if (error && posts.length === 0 && scores.length === 0) {
+    return (
+      <div className="py-12 px-8 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4">
+        <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Zap className="w-6 h-6 text-slate-400" />
+        </div>
+        <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white hover:underline"
+        >
+          Re-calibrate Radar
+        </button>
       </div>
     );
   }

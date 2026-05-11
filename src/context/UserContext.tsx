@@ -111,9 +111,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } else if (userSnap) {
         setInterests(userSnap.data().interests || []);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error("Firebase Error: This domain is not authorized for authentication. Please add it to the authorized domains in your Firebase console.");
+      }
       console.error("Sign in failed:", error);
-      throw error; // Re-throw to show in UI if needed
+      throw error; 
     }
   };
 

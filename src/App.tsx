@@ -40,6 +40,9 @@ function MainContent() {
       posts = mockPosts.filter(post => interests.includes(post.category));
     } else if (activeCategory !== "All") {
       posts = mockPosts.filter(post => post.category === activeCategory);
+    } else {
+      // Avoid duplicating the featured post in the main grid
+      posts = mockPosts.slice(1);
     }
     
     return posts;
@@ -222,14 +225,14 @@ function MainContent() {
               )}
 
               {/* Live Category Feed for specific tabs */}
-              {["Sports", "Tech", "News", "Entertainment"].includes(activeCategory) && (
+              {["Sports", "Tech", "News", "Entertainment", "Inspiration", "Interviews"].includes(activeCategory) && (
                 <div className="mb-24">
                   <LiveCategoryFeed category={activeCategory as Category} />
                 </div>
               )}
 
               {/* Feed Grid header */}
-              {["Sports", "Tech", "News", "Entertainment"].includes(activeCategory) && (
+              {["Sports", "Tech", "News", "Entertainment", "Inspiration", "Interviews"].includes(activeCategory) && (
                 <div className="flex items-center space-x-3 mb-12">
                   <div className="h-px flex-grow bg-slate-200 dark:bg-slate-800" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Community Stories</span>

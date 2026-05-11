@@ -22,6 +22,21 @@ export const mockPosts: Post[] = [
     likes: 1240,
   },
   {
+    id: "2-alt",
+    title: "The Future of Professional Football: Tech on the Pitch",
+    summary: "How VAR and wearable tech are changing the beautiful game forever.",
+    content: `
+      <p>Sports and technology are merging at an incredible pace. From advanced analytics to real-time player tracking, we look at how data is winning championships.</p>
+    `,
+    category: "Sports",
+    author: "Marco Silva",
+    authorId: "marco_silva",
+    date: "May 10, 2024",
+    imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2093",
+    readTime: "6 min read",
+    likes: 342,
+  },
+  {
     id: "2",
     title: "Interview: Marcus Aurelius on Modern Web Architecture",
     summary: "The senior architect at Nebula discusses the future of distributed systems and why design thinking is key to technical success.",
@@ -37,6 +52,21 @@ export const mockPosts: Post[] = [
     imageUrl: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=2070",
     readTime: "12 min read",
     likes: 856,
+  },
+  {
+    id: "3-alt",
+    title: "The Streaming Wars: Who's Actually Winning?",
+    summary: "A deep dive into the business models of Netflix, Disney+, and the new challengers.",
+    content: `
+      <p>Content is king, but distribution is the castle. We analyze the current state of entertainment streaming.</p>
+    `,
+    category: "Entertainment",
+    author: "Lee Min-ho",
+    authorId: "lee_min_ho",
+    date: "May 9, 2024",
+    imageUrl: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?auto=format&fit=crop&q=80&w=2070",
+    readTime: "9 min read",
+    likes: 1205,
   },
   {
     id: "3",
@@ -56,6 +86,21 @@ export const mockPosts: Post[] = [
     imageUrl: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=2070",
     readTime: "8 min read",
     likes: 2103,
+  },
+  {
+    id: "4-alt",
+    title: "Global Supply Chain Reimagined for 2025",
+    summary: "How resilience is replacing efficiency as the primary goal for global trade networks.",
+    content: `
+      <p>The lessons of the past few years have changed how companies think about sourcing. We look at the new map of world trade.</p>
+    `,
+    category: "News",
+    author: "Anita Desai",
+    authorId: "anita_desai",
+    date: "May 8, 2024",
+    imageUrl: "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=2069",
+    readTime: "7 min read",
+    likes: 678,
   },
   {
     id: "4",
