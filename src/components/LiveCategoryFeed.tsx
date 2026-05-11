@@ -42,7 +42,7 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLiveNews = async () => {
+    const fetchLiveNews = async (retryCount = 0) => {
       setLoading(true);
       setError(null);
       try {
@@ -77,18 +77,21 @@ export default function LiveCategoryFeed({ category }: LiveCategoryFeedProps) {
 
         const data = extractAndParseJSON<{ posts: any[]; scores?: any[] }>(response.text);
         
-        // Filter out items with placeholder URLs if possible, or just accept them but prioritize real ones
         const validPosts = (data.posts || []).filter((p: any) => p.title && p.summary);
         
         setPosts(validPosts);
         setScores(data.scores || []);
         
         if (validPosts.length === 0 && (!data.scores || data.scores.length === 0)) {
-           setError("Signals are faint at this frequency. Try another channel.");
+           setError("Signals are faint at this frequency. Checking other bands.");
         }
       } catch (err) {
         console.error("Failed to fetch live category news:", err);
-        setError("World radar offline. Falling back to local community stories.");
+        if (retryCount < 1) {
+          console.log("Retrying fetch...");
+          return fetchLiveNews(retryCount + 1);
+        }
+        setError("World radar offline. Signal lost in space.");
       } finally {
         setLoading(false);
       }

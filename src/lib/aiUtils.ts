@@ -17,7 +17,26 @@ export function extractAndParseJSON<T>(text: string): T {
     // 1. Try direct parse
     return JSON.parse(text) as T;
   } catch (e) {
-    // 2. Try to extract from markdown blocks
+    // 2. Try to find the first '{' and last '}' - this is usually the most robust for AI content
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+    
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+      const maybeJson = text.substring(startIndex, endIndex + 1);
+      try {
+        return JSON.parse(maybeJson) as T;
+      } catch (innerE) {
+        try {
+          // Try one more time with basic cleaning for common AI hallucination characters
+          const cleaned = basicClean(maybeJson);
+          return JSON.parse(cleaned) as T;
+        } catch (cleanE) {
+           console.warn("Failed to parse bracketed JSON string even after cleaning", cleanE);
+        }
+      }
+    }
+
+    // 3. Last ditch: try to extract from markdown blocks specifically
     const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/);
     if (jsonMatch && jsonMatch[1]) {
       const rawBlock = jsonMatch[1].trim();
@@ -27,29 +46,12 @@ export function extractAndParseJSON<T>(text: string): T {
         try {
           return JSON.parse(basicClean(rawBlock)) as T;
         } catch (cleanE) {
-          console.warn("Failed to parse extracted JSON block even after cleaning", cleanE);
-        }
-      }
-    }
-
-    // 3. Try to find the first '{' and last '}'
-    const startIndex = text.indexOf('{');
-    const endIndex = text.lastIndexOf('}');
-    
-    if (startIndex !== -1 && endIndex !== -1) {
-      const maybeJson = text.substring(startIndex, endIndex + 1);
-      try {
-        return JSON.parse(maybeJson) as T;
-      } catch (innerE) {
-        try {
-          return JSON.parse(basicClean(maybeJson)) as T;
-        } catch (cleanE) {
-          console.warn("Failed to parse bracketed JSON string even after cleaning", cleanE);
+          console.warn("Failed last-ditch extraction attempt", cleanE);
         }
       }
     }
 
     console.error("FAILED JSON EXTRACTION FROM TEXT:", text);
-    throw new Error("Could not extract valid JSON from model response. Text was: " + text.substring(0, 100) + "...");
+    throw new Error("Synchronizing signals... Signal format incompatible.");
   }
 }

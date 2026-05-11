@@ -26,13 +26,15 @@ export default function TrendingNews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTrending = async (city?: string, country?: string) => {
+  const fetchTrending = async (city?: string, country?: string, retryCount = 0) => {
+    setLoading(true);
+    setError(null);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompt = `
         You are a data extraction API.
-        Search for the most recent, breaking news headlines (last 24 hours) for ${city || "the user's current city"}, ${country || "their country"}, and the world in general. 
+        Search for the most recent, breaking news headlines (last 24 hours) for ${city || "the world"}, ${country || ""}. 
         Focus on categories like Tech, Entertainment, Sports, and major World Events.
         MANDATORY: Return REAL, valid URLs for the news stories. Do not use "#".
         OUTPUT INSTRUCTIONS: Return ONLY a valid JSON object. No other text.
@@ -66,16 +68,19 @@ export default function TrendingNews() {
       setWorldRadar(data.regions || {});
     } catch (err) {
       console.error("Failed to fetch trending news:", err);
-      setError("Unable to load latest trends from world radar.");
+      if (retryCount < 1) {
+        console.log("Retrying fetch...");
+        return fetchTrending(city, country, retryCount + 1);
+      }
+      setError("Radar signal lost. Frequencies are currently unstable.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
+  const initRadar = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation not supported");
-      fetchTrending(); // Fallback to global only or generic regional
+      fetchTrending();
       return;
     }
 
@@ -83,8 +88,8 @@ export default function TrendingNews() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Simple reverse geocoding via free public API (no key needed for demo/basic use)
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          if (!res.ok) throw new Error("Reverse geocode service down");
           const data = await res.json();
           const city = data.address.city || data.address.town || data.address.village || "your area";
           const country = data.address.country || "your country";
@@ -98,8 +103,13 @@ export default function TrendingNews() {
       (err) => {
         console.error("Geolocation error:", err);
         fetchTrending();
-      }
+      },
+      { timeout: 10000 }
     );
+  };
+
+  useEffect(() => {
+    initRadar();
   }, []);
 
   return (
@@ -138,8 +148,17 @@ export default function TrendingNews() {
                 ))}
               </div>
             ) : error && localTrending.length === 0 ? (
-              <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-slate-500 text-sm font-medium">{error}</p>
+              <div className="p-12 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Activity className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
+                <button 
+                  onClick={() => initRadar()} 
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white hover:underline px-6 py-2 border border-slate-200 dark:border-slate-800 rounded-full"
+                >
+                  Attempt Sync
+                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
